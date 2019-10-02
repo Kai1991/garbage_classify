@@ -6,6 +6,8 @@ import random
 import numpy as np
 from glob import glob
 from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import cv2
 from keras.utils import np_utils, Sequence
 from sklearn.model_selection import train_test_split
@@ -69,14 +71,14 @@ class BaseSequence(Sequence):
 
         # 数据归一化
         img = np.asarray(img, np.float32) / 255.0
-        mean = [0.56719673, 0.5293289, 0.48351972]
-        std = [0.20874391, 0.21455203, 0.22451781]
-        img[..., 0] -= mean[0]
-        img[..., 1] -= mean[1]
-        img[..., 2] -= mean[2]
-        img[..., 0] /= std[0]
-        img[..., 1] /= std[1]
-        img[..., 2] /= std[2]
+        #mean = [0.50061571, 0.5235656 , 0.50828127]
+        #std = [0.21231509, 0.20762372, 0.21267727]
+        #img[..., 0] -= mean[0]
+        #img[..., 1] -= mean[1]
+        #img[..., 2] -= mean[2]
+        #img[..., 0] /= std[0]
+        #img[..., 1] /= std[1]
+        #img[..., 2] /= std[2]
 
         # 数据增强
         if self.train:

@@ -110,6 +110,16 @@ class WarmUpCosineDecayScheduler(keras.callbacks.Callback):
         if self.verbose > 0:
             print('\nBatch %05d: setting learning '
                   'rate to %s.' % (self.global_step + 1, lr))
+    def on_test_begin(self, logs=None):
+        pass
+
+    def on_test_end(self, logs=None):
+        pass
+    def on_test_batch_begin(self, batch, logs=None):
+        pass
+
+    def on_test_batch_end(self, batch, logs=None):
+        pass
 
 if __name__ == '__main__':
     from keras.models import Sequential

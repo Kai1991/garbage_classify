@@ -13,7 +13,7 @@ cd {run.py所在目录}
 python run.py --mode=eval --eval_pb_path='../model_snapshots/model' --test_data_url='../datasets/garbage_classify/train_data'
 '''
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 import shutil
 
@@ -27,9 +27,9 @@ tf.app.flags.DEFINE_string('restore_model_path', '',
 tf.app.flags.DEFINE_string('train_url', '', 'the path to save training outputs')
 tf.app.flags.DEFINE_integer('keep_weights_file_num', 20,
                             'the max num of weights files keeps, if set -1, means infinity')
-tf.app.flags.DEFINE_integer('num_classes', 0, 'the num of classes which your task should classify')
+tf.app.flags.DEFINE_integer('num_classes', 9, 'the num of classes which your task should classify')
 tf.app.flags.DEFINE_integer('input_size', 456, 'the input image size of the model')
-tf.app.flags.DEFINE_integer('batch_size', 8, '')
+tf.app.flags.DEFINE_integer('batch_size', 4, '')
 tf.app.flags.DEFINE_float('learning_rate',1e-4, '')
 tf.app.flags.DEFINE_integer('max_epochs', 30, '')
 
@@ -109,9 +109,6 @@ def check_args(FLAGS):
             raise Exception('FLAGS.eval_weights_path: %s is not exist' % FLAGS.eval_weights_path)
         if FLAGS.eval_pb_path != '' and (not os.path.exists(FLAGS.eval_pb_path)):
             raise Exception('FLAGS.eval_pb_path: %s is not exist' % FLAGS.eval_pb_path)
-        if not os.path.isdir(FLAGS.eval_pb_path) or (not FLAGS.eval_pb_path.endswith('model')):
-            raise Exception('FLAGS.eval_pb_path must be a directory named model '
-                            'which contain saved_model.pb and variables, %s' % FLAGS.eval_pb_path)
         if FLAGS.test_data_url == '':
             raise Exception('you must specify FLAGS.test_data_url when you want to evaluate a model')
         if not os.path.exists(FLAGS.test_data_url):

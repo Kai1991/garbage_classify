@@ -44,6 +44,19 @@ def preprocess_img(img_path, img_size):
     img = img.convert('RGB')
     img = np.array(img)
     img = img[:, :, ::-1]
+
+    # 数据归一化
+    img = np.asarray(img, np.float32) / 255.0
+    mean = [0.50061571, 0.5235656 , 0.50828127]
+    std = [0.21231509, 0.20762372, 0.21267727]
+    img[..., 0] -= mean[0]
+    img[..., 1] -= mean[1]
+    img[..., 2] -= mean[2]
+    img[..., 0] /= std[0]
+    img[..., 1] /= std[1]
+    img[..., 2] /= std[2]
+
+
     img = center_img(img, img_size)
     return img
 
@@ -127,7 +140,7 @@ def test_single_model(FLAGS):
 
     with tf.get_default_graph().as_default():
         sess1 = tf.Session(graph=tf.Graph(), config=config)
-        pb_model_dir1 = pb_model_dir + '/model1'
+        pb_model_dir1 = pb_model_dir 
         meta_graph_def = tf.saved_model.loader.load(sess1, [tag_constants.SERVING], pb_model_dir)
         if FLAGS.eval_pb_path.startswith('s3//'):
             shutil.rmtree(pb_model_dir)
@@ -138,18 +151,6 @@ def test_single_model(FLAGS):
         input_images = sess1.graph.get_tensor_by_name(input_images_tensor_name)
         output_score = sess1.graph.get_tensor_by_name(output_score_tensor_name)
 
-    with tf.get_default_graph().as_default():
-        sess2 = tf.Session(graph=tf.Graph(), config=config)
-        pb_model_dir1 = pb_model_dir + '/model2'
-        meta_graph_def = tf.saved_model.loader.load(sess2, [tag_constants.SERVING], pb_model_dir)
-        if FLAGS.eval_pb_path.startswith('s3//'):
-            shutil.rmtree(pb_model_dir)
-        signature = meta_graph_def.signature_def
-        input_images_tensor_name = signature[signature_key].inputs[input_key_1].name
-        output_score_tensor_name = signature[signature_key].outputs[output_key_1].name
-
-        input_images = sess2.graph.get_tensor_by_name(input_images_tensor_name)
-        output_score = sess2.graph.get_tensor_by_name(output_score_tensor_name)
 
     img_names, test_data, test_labels = load_test_data(FLAGS)
     right_count = 0
@@ -177,32 +178,7 @@ def test_single_model(FLAGS):
         f.write('####################################\n')
         f.write('accuracy: %s\n' % accuracy)
 
-    img_names, test_data, test_labels = load_test_data(FLAGS)
-    right_count = 0
-    error_infos = []
-    for index, img in enumerate(test_data):
-        img = img[np.newaxis, :, :, :]
-        pred_score = sess2.run([output_score], feed_dict={input_images: img})
-        if pred_score is not None:
-            pred_label = np.argmax(pred_score[0], axis=1)[0]
-            test_label = test_labels[index]
-            if pred_label == test_label:
-                right_count += 1
-            else:
-                error_infos.append('%s, %s, %s\n' % (img_names[index], test_label, pred_label))
-        else:
-            print('pred_score is None')
-    accuracy = right_count / len(img_names)
-    print('accuracy: %s' % accuracy)
-    result_file_name = os.path.join(FLAGS.eval_pb_path, 'accuracy2.txt')
-    with open(result_file_name, 'w') as f:
-        f.write('# predict error files\n')
-        f.write('####################################\n')
-        f.write('file_name, true_label, pred_label\n')
-        f.writelines(error_infos)
-        f.write('####################################\n')
-        f.write('accuracy: %s\n' % accuracy)
-    print('end')
+    
 
 
 def eval_model(FLAGS):
