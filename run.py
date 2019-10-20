@@ -28,9 +28,9 @@ tf.app.flags.DEFINE_string('train_url', '', 'the path to save training outputs')
 tf.app.flags.DEFINE_integer('keep_weights_file_num', 20,
                             'the max num of weights files keeps, if set -1, means infinity')
 tf.app.flags.DEFINE_integer('num_classes', 9, 'the num of classes which your task should classify')
-tf.app.flags.DEFINE_integer('input_size', 456, 'the input image size of the model')
-tf.app.flags.DEFINE_integer('batch_size', 4, '')
-tf.app.flags.DEFINE_float('learning_rate',1e-4, '')
+tf.app.flags.DEFINE_integer('input_size', 256, 'the input image size of the model')
+tf.app.flags.DEFINE_integer('batch_size', 16, '')
+tf.app.flags.DEFINE_float('learning_rate',1e-3, '')
 tf.app.flags.DEFINE_integer('max_epochs', 30, '')
 
 # params for save pb
@@ -119,30 +119,9 @@ def main(argv=None):
     check_args(FLAGS)
 
     # Create some local cache directories used for transfer data between local path and OBS path
-    if not FLAGS.data_url.startswith('s3://'):
-        FLAGS.data_local = FLAGS.data_url
-    else:
-        FLAGS.data_local = os.path.join(FLAGS.local_data_root, 'train_data/')
-        if not os.path.exists(FLAGS.data_local):
-            shutil.copytree(FLAGS.data_url, FLAGS.data_local)
-        else:
-            print('FLAGS.data_local: %s is already exist, skip copy' % FLAGS.data_local)
-        
-    if not FLAGS.train_url.startswith('s3://'):
-        FLAGS.train_local = FLAGS.train_url
-    else:
-        FLAGS.train_local = os.path.join(FLAGS.local_data_root, 'model_snapshots/')
-        if not os.path.exists(FLAGS.train_local):
-            os.mkdir(FLAGS.train_local)
-    
-    if not FLAGS.test_data_url.startswith('s3://'):
-        FLAGS.test_data_local = FLAGS.test_data_url
-    else:
-        FLAGS.test_data_local = os.path.join(FLAGS.local_data_root, 'test_data/')
-        if not os.path.exists(FLAGS.test_data_local):
-            shutil.copytree(FLAGS.test_data_url, FLAGS.test_data_local)
-        else:
-            print('FLAGS.test_data_local: %s is already exist, skip copy' % FLAGS.test_data_local)
+    FLAGS.data_local = FLAGS.data_url
+    FLAGS.train_local = FLAGS.train_url 
+    FLAGS.test_data_local = FLAGS.test_data_url
     
     # FLAGS.tmp = os.path.join(FLAGS.local_data_root, 'tmp/')
     # print(FLAGS.tmp)

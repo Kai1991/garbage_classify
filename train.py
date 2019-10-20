@@ -27,6 +27,8 @@ import multiprocessing
 import efficientnet.keras as efn
 from warmup_cosine_decay_scheduler import WarmUpCosineDecayScheduler
 
+from Network import model_fn_ResNet50,model_fn_Xception
+
 backend.set_image_data_format('channels_last')
 def model_fn(FLAGS, objective, optimizer, metrics):
 
@@ -46,9 +48,43 @@ def model_fn(FLAGS, objective, optimizer, metrics):
     predictions = Dense(FLAGS.num_classes, activation='softmax')(x)  # activation="linear",activation='softmax'
     model = Model(input=model.input, output=predictions)
     #model = multi_gpu_model(model, 4)  # 修改成自身需要的GPU数量，4代表用4个GPU同时加载程序
-    # model.load_weights('/home/work/user-job-dir/src/weights_004_0.9223.h5')
+    #model.load_weights('/home/yons/code/tmp_garbage/model_snapshots_3_有用的异常模型/weights_009_0.7229.h5')
     model.compile(loss=objective, optimizer=optimizer, metrics=metrics)
     return model
+
+
+
+# SE-ResNet50
+def model_fn_SE_ResNet50(FLAGS, objective, optimizer, metrics):
+    inputs_dim = Input(shape=(FLAGS.input_size, FLAGS.input_size, 3))
+    x = ResNet50(weights="imagenet",
+                          include_top=False,
+                          pooling=max,
+                          input_shape=(FLAGS.input_size, FLAGS.input_size, 3),
+                          classes=FLAGS.num_classes)(inputs_dim)
+
+    squeeze = GlobalAveragePooling2D()(x)
+
+    excitation = Dense(units=2048 // 16)(squeeze)
+    excitation = Activation('relu')(excitation)
+    excitation = Dense(units=2048)(excitation)
+    excitation = Activation('sigmoid')(excitation)
+    excitation = Reshape((1, 1, 2048))(excitation)
+
+
+    scale = multiply([x, excitation])
+
+    x = GlobalAveragePooling2D()(scale)
+    # x = Dropout(0.3)(x)
+    fc2 = Dense(FLAGS.num_classes)(x)
+    fc2 = Activation('sigmoid')(fc2) #此处注意，为sigmoid函数
+    model = Model(inputs=inputs_dim, outputs=fc2)
+    # model.load_weights('/home/work/user-job-dir/src/SE-Xception.h5',by_name=True)
+    #model = load_model('/home/yons/code/tmp_garbage/')
+    model.compile(loss=objective, optimizer=optimizer, metrics=metrics)
+    return model
+
+
 
 class LossHistory(Callback):
     def __init__(self, FLAGS):
@@ -75,7 +111,6 @@ class LossHistory(Callback):
             if len(weights_files) >= self.FLAGS.keep_weights_file_num:
                 weights_files.sort(key=lambda file_name: os.stat(file_name).st_ctime, reverse=True)
 
-
 def train_model(FLAGS):
     # data flow generator
     train_sequence, validation_sequence = data_flow(FLAGS.data_local, FLAGS.batch_size,
@@ -86,7 +121,10 @@ def train_model(FLAGS):
     # optimizer = SGD(lr=FLAGS.learning_rate, momentum=0.9)
     objective = 'categorical_crossentropy'
     metrics = ['accuracy']
-    model = model_fn(FLAGS, objective, optimizer, metrics)
+    #model = model_fn(FLAGS, objective, optimizer, metrics)
+    #model = model_fn_SE_ResNet50(FLAGS, objective, optimizer, metrics)
+    model = model_fn_Xception(FLAGS, objective, optimizer, metrics)
+    
     if FLAGS.restore_model_path != '' and os.path.exists(FLAGS.restore_model_path):
         if FLAGS.restore_model_path.startswith('s3://'):
             restore_model_name = FLAGS.restore_model_path.rsplit('/', 1)[1]

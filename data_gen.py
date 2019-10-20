@@ -13,6 +13,7 @@ from keras.utils import np_utils, Sequence
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.image import ImageDataGenerator
 from aug import augumentor
+from utils import scale_byRatio
 
 class BaseSequence(Sequence):
     """
@@ -33,7 +34,7 @@ class BaseSequence(Sequence):
         return math.ceil(len(self.x_y) / self.batch_size)
 
     @staticmethod
-    def center_img(img, size=None, fill_value=255):
+    def center_img(img, size=None, fill_value=0):
         """
         center img in a square background
         """
@@ -63,28 +64,26 @@ class BaseSequence(Sequence):
         image preprocessing
         you can add your special preprocess method here
         """
-        img = Image.open(img_path)
-        resize_scale = self.img_size[0] / max(img.size[:2])
-        img = img.resize((int(img.size[0] * resize_scale), int(img.size[1] * resize_scale)))
-        img = img.convert('RGB')
-        img = np.array(img)
-
-        # 数据归一化
-        img = np.asarray(img, np.float32) / 255.0
-        #mean = [0.50061571, 0.5235656 , 0.50828127]
-        #std = [0.21231509, 0.20762372, 0.21267727]
-        #img[..., 0] -= mean[0]
-        #img[..., 1] -= mean[1]
-        #img[..., 2] -= mean[2]
-        #img[..., 0] /= std[0]
-        #img[..., 1] /= std[1]
-        #img[..., 2] /= std[2]
+        img = scale_byRatio(img_path,return_width=256)
 
         # 数据增强
         if self.train:
             # img = self.img_aug(img)
             img = augumentor(img)
-        img = self.center_img(img, self.img_size[0])
+            #pass
+        # 数据归一化
+        img = np.asarray(img, np.float32) / 255.0
+        mean = [0.50064302,0.52358398,0.50864987]
+        std = [0.21226286,0.20765279,0.21247285]
+        img[..., 0] -= mean[0]
+        img[..., 1] -= mean[1]
+        img[..., 2] -= mean[2]
+        img[..., 0] /= std[0]
+        img[..., 1] /= std[1]
+        img[..., 2] /= std[2]
+
+        
+        #img = self.center_img(img, self.img_size[0])
         return img
 
 
@@ -166,18 +165,7 @@ def data_flow(train_data_dir, batch_size, num_classes, input_size):  # need modi
 
     train_sequence = BaseSequence(train_img_paths, train_labels, batch_size, [input_size, input_size], True)
     validation_sequence = BaseSequence(validation_img_paths, validation_labels, batch_size, [input_size, input_size], False)
-    # # 构造多进程的数据流生成器
-    # train_enqueuer = OrderedEnqueuer(train_sequence, use_multiprocessing=True, shuffle=True)
-    # validation_enqueuer = OrderedEnqueuer(validation_sequence, use_multiprocessing=True, shuffle=True)
-    #
-    # # 启动数据生成器
-    # n_cpu = multiprocessing.cpu_count()
-    # train_enqueuer.start(workers=int(n_cpu * 0.7), max_queue_size=10)
-    # validation_enqueuer.start(workers=1, max_queue_size=10)
-    # train_data_generator = train_enqueuer.get()
-    # validation_data_generator = validation_enqueuer.get()
 
-    # return train_enqueuer, validation_enqueuer, train_data_generator, validation_data_generator
     return train_sequence, validation_sequence
 
 

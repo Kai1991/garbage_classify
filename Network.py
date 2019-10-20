@@ -24,7 +24,7 @@ from keras_efficientnets import EfficientNetB5
 from keras_efficientnets import EfficientNetB4
 import efficientnet.keras as efn
 # ResNet50
-def model_fn(FLAGS, objective, optimizer, metrics):
+def model_fn_ResNet50(FLAGS, objective, optimizer, metrics):
     """
     pre-trained resnet50 model
     """
@@ -33,9 +33,7 @@ def model_fn(FLAGS, objective, optimizer, metrics):
                           pooling=None,
                           input_shape=(FLAGS.input_size, FLAGS.input_size, 3),
                           classes=FLAGS.num_classes)
-    base_model = multi_gpu_model(base_model,4)
-    for layer in base_model.layers:
-        layer.trainable = False
+    #base_model = multi_gpu_model(base_model,4)
     x = base_model.output
     x = Flatten()(x)
     predictions = Dense(FLAGS.num_classes, activation='softmax')(x)
@@ -44,7 +42,7 @@ def model_fn(FLAGS, objective, optimizer, metrics):
     return model
 
 # SE-ResNet50
-def model_fn(FLAGS, objective, optimizer, metrics):
+def model_fn_SE_ResNet50(FLAGS, objective, optimizer, metrics):
     inputs_dim = Input(shape=(FLAGS.input_size, FLAGS.input_size, 3))
     x = ResNet50(weights="imagenet",
                           include_top=False,
@@ -92,7 +90,7 @@ def model_fn(FLAGS, objective, optimizer, metrics):
     model.compile(loss=objective, optimizer=optimizer, metrics=metrics)
     return model
 # Xception
-def model_fn(FLAGS, objective, optimizer, metrics):
+def model_fn_Xception(FLAGS, objective, optimizer, metrics):
     inputs_dim = Input(shape=(FLAGS.input_size, FLAGS.input_size, 3))
     Xception_notop = Xception(include_top=False,
                 weights=None,
@@ -100,7 +98,7 @@ def model_fn(FLAGS, objective, optimizer, metrics):
                 input_shape=(FLAGS.input_size, FLAGS.input_size, 3),
                 pooling=max)
 
-    Xception_notop.load_weights('/home/work/user-job-dir/src/xception_weights_tf_dim_ordering_tf_kernels_notop.h5')
+    #Xception_notop.load_weights('/home/work/user-job-dir/src/xception_weights_tf_dim_ordering_tf_kernels_notop.h5')
     output = Xception_notop.output
     output = GlobalAveragePooling2D()(output)
     output = Dense(FLAGS.num_classes, activation='softmax')(output)

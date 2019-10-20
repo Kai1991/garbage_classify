@@ -12,13 +12,13 @@ from keras.optimizers import adam, Nadam
 
 from tensorflow.python.saved_model import tag_constants
 
-from train import model_fn
+from train import model_fn, model_fn_SE_ResNet50
 from save_model import load_weights
 
 backend.set_image_data_format('channels_last')
 
 
-def center_img(img, size=None, fill_value=255):
+def center_img(img, size=None, fill_value=0):
     """
     center img in a square background
     """
@@ -43,12 +43,11 @@ def preprocess_img(img_path, img_size):
     img = img.resize((int(img.size[0] * resize_scale), int(img.size[1] * resize_scale)))
     img = img.convert('RGB')
     img = np.array(img)
-    img = img[:, :, ::-1]
 
     # 数据归一化
     img = np.asarray(img, np.float32) / 255.0
-    mean = [0.50061571, 0.5235656 , 0.50828127]
-    std = [0.21231509, 0.20762372, 0.21267727]
+    mean = [0.50064302,0.52358398,0.50864987]
+    std = [0.21226286,0.20765279,0.21247285]
     img[..., 0] -= mean[0]
     img[..., 1] -= mean[1]
     img[..., 2] -= mean[2]
@@ -64,7 +63,7 @@ def preprocess_img(img_path, img_size):
 def load_test_data(FLAGS):
     label_files = glob(os.path.join(FLAGS.test_data_local, '*.txt'))
     test_data = np.ndarray((len(label_files), FLAGS.input_size, FLAGS.input_size, 3),
-                           dtype=np.uint8)
+                           dtype=np.float32)
     img_names = []
     test_labels = []
     for index, file_path in enumerate(label_files):
@@ -88,16 +87,26 @@ def test_single_h5(FLAGS, h5_weights_path):
     objective = 'categorical_crossentropy'
     metrics = ['accuracy']
     model = model_fn(FLAGS, objective, optimizer, metrics)
+    #model = model_fn_SE_ResNet50(FLAGS, objective, optimizer, metrics)
     load_weights(model, FLAGS.eval_weights_path)
     img_names, test_data, test_labels = load_test_data(FLAGS)
     predictions = model.predict(test_data, verbose=0)
 
     right_count = 0
     error_infos = []
+
+    print("img len :")
+    print(len(img_names))
+    print("test_data len :")
+    print(len(test_data))
+    print("test_labels len :")
+    print(len(test_labels))
+
     for index, pred in enumerate(predictions):
-        pred_label = np.argmax(pred, axis=0)
+        pred_label = np.argmax(pred, axis=0) + 1
         test_label = test_labels[index]
         if pred_label == test_label:
+            print("{},{},{}".format(img_names[index],test_label,pred_label))
             right_count += 1
         else:
             error_infos.append('%s, %s, %s\n' % (img_names[index], test_label, pred_label))
@@ -120,7 +129,7 @@ def test_batch_h5(FLAGS):
     """
     test all the h5 weights files in the model_dir
     """
-    file_paths = glob.glob(os.path.join(FLAGS.eval_weights_path, '*.h5'))
+    file_paths = glob(os.path.join(FLAGS.eval_weights_path, '*.h5'))
     for file_path in file_paths:
         test_single_h5(FLAGS, file_path)
 

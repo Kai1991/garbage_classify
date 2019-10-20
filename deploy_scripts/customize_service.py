@@ -68,7 +68,6 @@ class garbage_classify_service(TfServingBaseService):
         img = img.resize((int(img.size[0] * resize_scale), int(img.size[1] * resize_scale)))
         img = img.convert('RGB')
         img = np.array(img)
-        img = img[:, :, ::-1]
         img = self.center_img(img, self.input_size)
         return img
         #################################################################
@@ -96,8 +95,8 @@ class garbage_classify_service(TfServingBaseService):
         img = data[self.input_key_1]
         img = img[np.newaxis, :, :, :]  # the input tensor shape of resnet is [?, 224, 224, 3]
         img = np.asarray(img, np.float32) / 255.0
-        mean = [0.56719673, 0.5293289, 0.48351972]
-        std = [0.20874391, 0.21455203, 0.22451781]
+        mean = [0.50064302,0.52358398,0.50864987]
+        std = [0.21226286,0.20765279,0.21247285]
         img[..., 0] -= mean[0]
         img[..., 1] -= mean[1]
         img[..., 2] -= mean[2]
